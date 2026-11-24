@@ -1,0 +1,408 @@
+{
+ "name": "SJF Inquiry Desk v2 (Grok, Claude backup, Monday) - exported, instructions removed",
+ "nodes": [
+  {
+   "id": "a1",
+   "name": "New buyer message",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "inquiry",
+    "authentication": "headerAuth",
+    "responseMode": "responseNode",
+    "options": {}
+   }
+  },
+  {
+   "id": "a2",
+   "name": "Prepare and check duplicates",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    200
+   ],
+   "parameters": {
+    "jsCode": "const m = $input.first().json.body || {};\nconst key = String(m.name || \"\") + \"|\" + String(m.message || \"\").trim().toLowerCase();\nconst store = $getWorkflowStaticData(\"global\");\nstore.seen = store.seen || [];\nlet h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0;\nconst id = String(h);\nconst duplicate = store.seen.includes(id);\nif (!duplicate) { store.seen = [...store.seen, id].slice(-500); }\nconst system = \"<private instructions: kept out of this repository>\";\nconst schema = { type: \"object\", additionalProperties: false,\n  required: [\"language\",\"message_english\",\"brand\",\"intent\",\"requirement\",\"urgency\",\"hot_score\",\"owner\",\"suggested_reply\",\"next_step\",\"confidence\"],\n  properties: { language:{type:\"string\"}, message_english:{type:\"string\"}, brand:{type:\"string\"}, intent:{type:\"string\"}, requirement:{type:\"string\"},\n    urgency:{type:\"string\",enum:[\"urgent\",\"high\",\"normal\",\"low\"]}, hot_score:{type:\"integer\"}, owner:{type:\"string\",enum:[\"director\",\"telecaller\",\"production\",\"export\",\"none\"]},\n    suggested_reply:{type:\"string\"}, next_step:{type:\"string\"}, confidence:{type:\"number\"} } };\nconst user = \"From: \" + (m.name || \"?\") + \", \" + (m.company || \"\") + \", \" + (m.country || \"\") + \"\\nChannel: \" + (m.channel || \"?\") + \"\\nMessage: \" + (m.message || \"\");\nreturn [{ json: { duplicate, input: m, test_grok_down: !!m.test_grok_down,\n  grok: { model: \"grok-4.7\", temperature: 0, messages: [{ role: \"system\", content: system }, { role: \"user\", content: user }],\n    response_format: { type: \"json_schema\", json_schema: { name: \"inquiry\", strict: true, schema } } },\n  claude: { model: \"claude-opus-5-5\", max_tokens: 4000, output_config: { effort: \"low\", format: { type: \"json_schema\", schema } },\n    system, messages: [{ role: \"user\", content: user }] } } }];"
+   }
+  },
+  {
+   "id": "a3",
+   "name": "Already seen?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    440,
+    200
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "typeValidation": "loose"
+     },
+     "combinator": "and",
+     "conditions": [
+      {
+       "id": "c1",
+       "leftValue": "={{ $json.duplicate }}",
+       "rightValue": true,
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ]
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "a4",
+   "name": "Reply: duplicate skipped",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    660,
+    0
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ JSON.stringify({ ok: true, duplicate: true, note: 'Same buyer and message already processed, skipped.' }) }}",
+    "options": {
+     "responseCode": 200
+    }
+   }
+  },
+  {
+   "id": "a5",
+   "name": "Grok sorts it",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "onError": "continueErrorOutput",
+   "position": [
+    660,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $json.test_grok_down ? 'https://api.x.ai/v1/this-is-a-test-failure' : 'https://api.x.ai/v1/chat/completions' }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": false,
+    "headerParameters": {
+     "parameters": []
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.grok) }}",
+    "options": {
+     "timeout": 45000
+    }
+   }
+  },
+  {
+   "id": "a6",
+   "name": "Read Grok's answer",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "onError": "continueErrorOutput",
+   "position": [
+    880,
+    220
+   ],
+   "parameters": {
+    "jsCode": "const c = $input.first().json.choices?.[0]?.message?.content;\nlet t; try { t = JSON.parse(c); } catch (e) { throw new Error(\"Grok answer was not valid JSON\"); }\nreturn [{ json: { ticket: t, ai_used: \"Grok 4.7 (xAI)\", fallback: false } }];"
+   }
+  },
+  {
+   "id": "a7",
+   "name": "Backup: Claude sorts it",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 2,
+   "waitBetweenTries": 2000,
+   "position": [
+    880,
+    420
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.anthropic.com/v1/messages",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "anthropic-version",
+       "value": "2026-10-21"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($('Prepare and check duplicates').first().json.claude) }}",
+    "options": {
+     "timeout": 90000
+    }
+   }
+  },
+  {
+   "id": "a8",
+   "name": "Read Claude's answer",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1100,
+    420
+   ],
+   "parameters": {
+    "jsCode": "const r = $input.first().json;\nif (r.stop_reason === \"refusal\") throw new Error(\"Claude declined this message\");\nconst text = (r.content || []).filter(b => b.type === \"text\").map(b => b.text).join(\"\");\nreturn [{ json: { ticket: JSON.parse(text), ai_used: \"Claude Opus 5.5 (backup)\", fallback: true,\n  grok_error: $('Grok sorts it').first().json.error?.message || \"Grok failed\" } }];"
+   }
+  },
+  {
+   "id": "a9",
+   "name": "Safety checks and Monday row",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1320,
+    300
+   ],
+   "parameters": {
+    "jsCode": "const { ticket: t, ai_used, fallback, grok_error } = $input.first().json;\nconst m = $('Prepare and check duplicates').first().json.input;\nt.hot_score = Math.max(0, Math.min(10, t.hot_score | 0));\nconst problems = [];\nif (/\b(cheapest|best quality|leading)\b/i.test(t.suggested_reply)) problems.push(\"banned claim\");\nif (t.confidence < 0.7) problems.push(\"low confidence\");\nif (fallback) problems.push(\"answered by backup AI\");\nconst due = { urgent: 2, high: 24, normal: 72, low: 168 }[t.urgency] || 72;\nconst intent = String(t.intent || \"\").toLowerCase();\nconst action = /quote|price/.test(intent) ? \"Send quote\" : /catalog/.test(intent) ? \"Send catalogue\" : /sample/.test(intent) ? \"Arrange sample\" : /custom|design/.test(intent) ? \"Custom design brief\" : /complain/.test(intent) ? \"Resolve complaint\" : /order|payment/.test(intent) ? \"Process order or payment\" : \"Follow up\";\nconst cap = (s) => String(s || \"\").replace(/^./, (x) => x.toUpperCase());\nconst values = {\n  \"color_mm9cpd1j\": { label: cap(t.urgency) }, \"color_mm9c1s94\": { label: action }, \"color_mm9c54h3\": { label: t.owner },\n  \"color_mm9c38n\": { label: m.channel || \"WhatsApp\" }, \"color_mm9c3svj\": { label: t.brand }, \"color_mm9ck3pv\": { label: t.language },\n  \"text_mm9cnab6\": m.country || \"\", \"numeric_mm9cw74a\": String(t.hot_score), \"numeric_mm9cp5p1\": String(due),\n  \"text_mm9c5emj\": String(t.requirement).slice(0, 250), \"text_mm9cv10y\": String(t.next_step).slice(0, 250) };\nconst esc = (x) => String(x || \"\").replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\");\nconst body = \"<p><b>Message (\" + esc(m.channel || \"web\") + \")</b><br>\" + esc(m.message) + \"</p><p><b>In English</b><br>\" + esc(t.message_english) + \"</p><p><b>Reply to send (\" + esc(t.language) + \"), waiting for approval</b><br>\" + esc(t.suggested_reply) + \"</p><p><b>Next step</b><br>\" + esc(t.next_step) + \"</p><p>Processed by \" + esc(ai_used) + \" via n8n</p>\";\nreturn [{ json: { result: { ...t, act_within_hours: due, action, ai_used, fallback, grok_error, status: problems.length ? \"needs_human_review\" : \"ready_for_approval\", problems },\n  monday: { query: \"mutation ($b: ID!, $n: String!, $v: JSON!, $body: String!) { create_item(board_id: $b, item_name: $n, column_values: $v, create_labels_if_missing: true) { id } }\",\n    variables: { b: \"<monday-board-id>\", n: action + \" · \" + (m.company || m.name || \"New buyer\"), v: JSON.stringify(values), body } } } }];"
+   }
+  },
+  {
+   "id": "a10",
+   "name": "Add row on Monday",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 2000,
+   "onError": "continueRegularOutput",
+   "position": [
+    1540,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.monday.com/v2",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "API-Version",
+       "value": "2025-04"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ query: $json.monday.query.replace(', $body: String!', ''), variables: { b: $json.monday.variables.b, n: $json.monday.variables.n, v: $json.monday.variables.v } }) }}",
+    "options": {
+     "timeout": 60000
+    }
+   }
+  },
+  {
+   "id": "a11",
+   "name": "Send result back",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    1980,
+    300
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ JSON.stringify({ ok: true, monday_item: $('Add row on Monday').first().json.data?.create_item?.id || null, ticket: $('Safety checks and Monday row').first().json.result }) }}",
+    "options": {
+     "responseCode": 200
+    }
+   }
+  },
+  {
+   "id": "a12",
+   "name": "Add full message to row",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 2000,
+   "onError": "continueRegularOutput",
+   "position": [
+    1650,
+    480
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.monday.com/v2",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "API-Version",
+       "value": "2025-04"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ query: 'mutation ($i: ID!, $body: String!) { create_update(item_id: $i, body: $body) { id } }', variables: { i: $json.data.create_item.id, body: $('Safety checks and Monday row').first().json.monday.variables.body } }) }}",
+    "options": {
+     "timeout": 60000
+    }
+   }
+  }
+ ],
+ "connections": {
+  "New buyer message": {
+   "main": [
+    [
+     {
+      "node": "Prepare and check duplicates",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prepare and check duplicates": {
+   "main": [
+    [
+     {
+      "node": "Already seen?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Already seen?": {
+   "main": [
+    [
+     {
+      "node": "Reply: duplicate skipped",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Grok sorts it",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Grok sorts it": {
+   "main": [
+    [
+     {
+      "node": "Read Grok's answer",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Backup: Claude sorts it",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read Grok's answer": {
+   "main": [
+    [
+     {
+      "node": "Safety checks and Monday row",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Backup: Claude sorts it",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Backup: Claude sorts it": {
+   "main": [
+    [
+     {
+      "node": "Read Claude's answer",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read Claude's answer": {
+   "main": [
+    [
+     {
+      "node": "Safety checks and Monday row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Safety checks and Monday row": {
+   "main": [
+    [
+     {
+      "node": "Add row on Monday",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Add row on Monday": {
+   "main": [
+    [
+     {
+      "node": "Add full message to row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Add full message to row": {
+   "main": [
+    [
+     {
+      "node": "Send result back",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}

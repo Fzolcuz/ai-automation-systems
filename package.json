@@ -1,0 +1,14 @@
+{
+  "name": "ai-systems-showcase",
+  "private": true,
+  "type": "module",
+  "description": "Selected code and design notes from eight AI automation systems built by Farukh Shaikh. Shared for evaluation only.",
+  "scripts": {
+    "test": "node --test",
+    "eval": "node evals/run-eval.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

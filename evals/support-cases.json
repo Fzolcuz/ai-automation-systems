@@ -1,0 +1,86 @@
+[
+ {
+  "text": "Stop calling me. Remove my number from your list.",
+  "expect": {
+   "category": "opt_out",
+   "urgency": "urgent"
+  }
+ },
+ {
+  "text": "If my order is late again I'm cancelling the contract and moving to another supplier.",
+  "expect": {
+   "category": "cancellation_risk",
+   "urgency": "urgent"
+  }
+ },
+ {
+  "text": "Two of the 18K rings arrived with a broken clasp. Our shop opens Saturday.",
+  "expect": {
+   "category": "damaged_goods",
+   "urgency": "high"
+  }
+ },
+ {
+  "text": "Your invoice charges us for 40 pieces but we only received 34.",
+  "expect": {
+   "category": "invoice_dispute",
+   "urgency": "high"
+  }
+ },
+ {
+  "text": "The leads you sent this week were junk, half never picked up the phone. I want a refund.",
+  "expect": {
+   "category": "lead_quality",
+   "urgency": "high"
+  }
+ },
+ {
+  "text": "3 of my 5 appointments yesterday were no-shows. What is going on with your confirmation calls?",
+  "expect": {
+   "category": "appointment_no_show",
+   "urgency": "high"
+  }
+ },
+ {
+  "text": "Where is my parcel? Tracking hasn't moved in 4 days.",
+  "expect": {
+   "category": "delivery",
+   "urgency": "normal"
+  }
+ },
+ {
+  "text": "Can we pause our campaign for two weeks over the holidays?",
+  "expect": {
+   "category": "pause_or_change",
+   "urgency": "normal"
+  }
+ },
+ {
+  "text": "How do I log in to the client portal for the first time?",
+  "expect": {
+   "category": "onboarding",
+   "urgency": "normal"
+  }
+ },
+ {
+  "text": "The booking link on my landing page shows an error.",
+  "expect": {
+   "category": "tech_issue",
+   "urgency": "high"
+  }
+ },
+ {
+  "text": "Thanks, the new ads are bringing great calls!",
+  "expect": {
+   "category": "compliment",
+   "urgency": "low"
+  }
+ },
+ {
+  "text": "Congratulations, you have won a free cruise, click here.",
+  "expect": {
+   "category": "spam",
+   "urgency": "low"
+  }
+ }
+]
