@@ -6,9 +6,15 @@
   "scripts": {
     "test": "node --test",
     "eval": "node evals/run-eval.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "15.15.0"
   }
 }

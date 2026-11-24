@@ -18,7 +18,7 @@ const YAHOO = { gold: "GC=F", silver: "SI=F", platinum: "PL=F" };
 const SANE = { gold: [1000, 12000], silver: [10, 300], platinum: [400, 6000], usd_inr: [60, 130], gbp_inr: [80, 170] };
 const BAND = { gold: 0.4, silver: 0.4, platinum: 0.4, usd_inr: 0.15, gbp_inr: 0.15 };
 let REF = {};
-try { REF = require("./rates_ref.json"); } catch (e) { /* no reference: outer limits only */ }
+try { REF = require("./rates_ref.json"); } catch { /* no reference: outer limits only */ }
 
 async function getJson(url) {
   const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (SJF rates)" }, signal: AbortSignal.timeout(6000) });
@@ -41,7 +41,7 @@ function believable(key, v, ref = REF) {
 async function pick(key, tries, ref = REF) {
   const got = [];
   for (const [src, fn] of tries) {
-    try { const v = await fn(); if (believable(key, v, ref)) got.push({ v, src }); } catch (e) { /* try next */ }
+    try { const v = await fn(); if (believable(key, v, ref)) got.push({ v, src }); } catch { /* try next */ }
     if (got.length === 2) break; // two opinions are enough
   }
   if (!got.length) return null;

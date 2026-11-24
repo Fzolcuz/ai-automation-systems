@@ -212,6 +212,7 @@ export function applyRules(originalText, t) {
 // owner or team, and the reply-by date are also filled as real columns the team can sort and filter by.
 export async function addMondayRow(title, html, { fetchImpl = fetch, token = process.env.MONDAY_API_TOKEN, boardId = process.env.MONDAY_BOARD_ID, columnValues = null, tries = 3, retryDelayMs = 2000 } = {}) {
   if (!token || !boardId) return null;
+  // API-Version 2025-04 is the version the live SJF boards were written with on 23 Nov 2026.
   const q = async (query, variables) => {
     const r = await fetchImpl("https://api.monday.com/v2", { method: "POST", headers: { Authorization: token, "Content-Type": "application/json", "API-Version": "2025-04" }, body: JSON.stringify({ query, variables }) });
     const j = await r.json(); if (j.errors) throw new Error("Monday error"); return j.data;
