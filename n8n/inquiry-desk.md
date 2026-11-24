@@ -35,6 +35,6 @@ Proven live: with Grok switched off, Claude answered in about 8 s; the same mess
 One difference from the website engine: the "stop contacting me" and "cancel" rules run in the engine (`applyRules`), not yet in this
 n8n workflow. Adding them to the workflow's safety box is the next change.
 
-Six more workflows are built and ready (Lead Gen replies every 30 minutes, Meta Ad Desk, AI Telecaller,
+Two of them are exported next to this file ([telecaller.workflow.json](telecaller.workflow.json), [ad-desk.workflow.json](ad-desk.workflow.json)). Six more workflows are built and ready (Lead Gen replies every 30 minutes, Meta Ad Desk, AI Telecaller,
 Image Studio budget check at 8 pm, gold price alert at 1 pm, morning digest at 9 am), each with the same
 Grok-first, Claude-backup pattern.

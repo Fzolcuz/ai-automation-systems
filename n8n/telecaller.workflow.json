@@ -1,0 +1,297 @@
+{
+ "name": "SJF · AI Telecaller (call finished, AI summary, Monday row and follow-up) - exported, instructions removed",
+ "nodes": [
+  {
+   "id": "s1",
+   "name": "What this does",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -40,
+    -380
+   ],
+   "parameters": {
+    "content": "**SJF AI Telecaller (call finished, notes and follow-up)**\n\nWHAT IT DOES: when the ElevenLabs AI telecaller finishes a call, this flow reads the call report, Grok writes a short summary and score, a row goes on the Monday SJF Ticket Desk board and a follow-up task is added under it for a person.\n\nTRIGGER: ElevenLabs post-call report sent to the address 'sjf-call-finished' (secret header X-SJF-Key).\n\nWHAT A PERSON APPROVES: the follow-up task. The flow never calls or messages anybody.\n\nBEFORE SWITCHING ON: set the ElevenLabs post-call webhook to this address; check the field names (name, company, transcript) match what ElevenLabs sends.",
+    "height": 300,
+    "width": 560,
+    "color": 4
+   }
+  },
+  {
+   "id": "t1",
+   "name": "Call finished",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "telecaller",
+    "authentication": "headerAuth",
+    "responseMode": "onReceived",
+    "options": {}
+   }
+  },
+  {
+   "id": "t2",
+   "name": "Prepare the call notes",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    200
+   ],
+   "parameters": {
+    "jsCode": "const m = $input.first().json.body || $input.first().json;\nconst system = \"<private instructions: kept out of this repository>\";\nconst user = \"Caller: \" + (m.name || m.caller || \"?\") + \", \" + (m.company || \"\") + \", \" + (m.country || \"\") + \"\\nCall length (s): \" + (m.duration || \"?\") + \"\\nTranscript:\\n\" + (m.transcript || m.analysis?.transcript_summary || JSON.stringify(m).slice(0, 4000));\nconst schema = {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"outcome\",\"brand\",\"wants\",\"follow_up\",\"follow_up_in_days\",\"hot_score\"],\"properties\":{\"summary\":{\"type\":\"string\"},\"outcome\":{\"type\":\"string\",\"enum\":[\"interested\",\"call_back\",\"not_interested\",\"no_answer\",\"wrong_number\"]},\"brand\":{\"type\":\"string\"},\"wants\":{\"type\":\"string\"},\"follow_up\":{\"type\":\"string\"},\"follow_up_in_days\":{\"type\":\"integer\"},\"hot_score\":{\"type\":\"integer\"}}};\nreturn [{ json: { input: m, \n  grok: { model: \"grok-4.7\", temperature: 0, messages: [{ role: \"system\", content: system }, { role: \"user\", content: user }],\n    response_format: { type: \"json_schema\", json_schema: { name: \"answer\", strict: true, schema } } },\n  claude: { model: \"claude-opus-5-5\", max_tokens: 3000, output_config: { effort: \"low\", format: { type: \"json_schema\", schema } },\n    system, messages: [{ role: \"user\", content: user }] } } }];"
+   }
+  },
+  {
+   "id": "t3",
+   "name": "Grok summarises the call",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "onError": "continueErrorOutput",
+   "position": [
+    440,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.x.ai/v1/chat/completions",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": false,
+    "headerParameters": {
+     "parameters": []
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.grok) }}",
+    "options": {
+     "timeout": 45000
+    }
+   }
+  },
+  {
+   "id": "t4",
+   "name": "Backup: Claude summarises the call",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 2,
+   "waitBetweenTries": 2000,
+   "position": [
+    440,
+    420
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.anthropic.com/v1/messages",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "anthropic-version",
+       "value": "2026-10-21"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($('Prepare the call notes').first().json.claude) }}",
+    "options": {
+     "timeout": 90000
+    }
+   }
+  },
+  {
+   "id": "t5",
+   "name": "Read the AI answer and build the Monday row",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    680,
+    300
+   ],
+   "parameters": {
+    "jsCode": "const j = $input.first().json;\nlet text, ai;\nif (j.choices) { text = j.choices[0].message.content; ai = \"Grok 4.7 (xAI)\"; }\nelse { if (j.stop_reason === \"refusal\") throw new Error(\"Claude declined\"); text = (j.content || []).filter(b => b.type === \"text\").map(b => b.text).join(\"\"); ai = \"Claude Opus 5.5 (backup)\"; }\nlet a; try { a = JSON.parse(text); } catch (e) { throw new Error(\"AI answer was not valid JSON\"); }\nconst input = $('Prepare the call notes').first().json.input;\nconst hot = Math.max(0, Math.min(10, a.hot_score | 0));\nconst values = {\n  \"__drop385\": input.company || \"\", \"text_mm9cnab6\": input.country || \"\", \"color_mm9c3svj\": a.brand, \"text_mm9c5emj\": String(a.wants).slice(0, 250),\n  \"__drop386\": \"call_\" + a.outcome + \" (\" + ai + \")\", \"numeric_mm9cw74a\": String(hot), \"color_mm9c54h3\": \"telecaller\",\n  \"__drop388\": { text: a.summary }, \"text_mm9cv10y\": { text: a.follow_up } };\nreturn [{ json: { ai, call: a, monday: { query: \"mutation ($b: ID!, $n: String!, $v: JSON!) { create_item(board_id: $b, item_name: $n, column_values: $v, create_labels_if_missing: true) { id } }\",\n    variables: { b: \"<monday-board-id>\", n: (input.name || input.caller || \"Call\") + \" (AI telecaller)\", v: JSON.stringify(Object.fromEntries(Object.entries(values).filter(([k]) => !k.startsWith(\"__drop\")).map(([k, v]) => [k, [\"color_mm9cpd1j\",\"color_mm9c1s94\",\"color_mm9c54h3\",\"color_mm9c38n\",\"color_mm9c3svj\",\"color_mm9ck3pv\"].includes(k) && typeof v !== \"object\" ? { label: String(v).replace(/^./, (x) => x.toUpperCase()) } : v]))) } } } }];"
+   }
+  },
+  {
+   "id": "t6",
+   "name": "Add call row on Monday",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 2000,
+   "onError": "continueRegularOutput",
+   "position": [
+    900,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.monday.com/v2",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "API-Version",
+       "value": "2025-04"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.monday) }}",
+    "options": {
+     "timeout": 60000
+    }
+   }
+  },
+  {
+   "id": "t7",
+   "name": "Prepare follow-up task",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1120,
+    300
+   ],
+   "parameters": {
+    "jsCode": "const row = $('Add call row on Monday').first().json;\nconst call = $('Read the AI answer and build the Monday row').first().json.call;\nconst parent = row.data?.create_item?.id;\nif (!parent) return [{ json: { skipped: true, why: \"Monday row was not created, so no follow-up task\" } }];\nreturn [{ json: { monday: { query: \"mutation ($p: ID!, $n: String!) { create_subitem(parent_item_id: $p, item_name: $n) { id } }\",\n  variables: { p: String(parent), n: \"FOLLOW UP in \" + call.follow_up_in_days + \" day(s): \" + call.follow_up } } } }];"
+   }
+  },
+  {
+   "id": "t8",
+   "name": "Add follow-up task under the row",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 2000,
+   "onError": "continueRegularOutput",
+   "position": [
+    1340,
+    300
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.monday.com/v2",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "API-Version",
+       "value": "2025-04"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.monday) }}",
+    "options": {
+     "timeout": 60000
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Call finished": {
+   "main": [
+    [
+     {
+      "node": "Prepare the call notes",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prepare the call notes": {
+   "main": [
+    [
+     {
+      "node": "Grok summarises the call",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Grok summarises the call": {
+   "main": [
+    [
+     {
+      "node": "Read the AI answer and build the Monday row",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Backup: Claude summarises the call",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Backup: Claude summarises the call": {
+   "main": [
+    [
+     {
+      "node": "Read the AI answer and build the Monday row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read the AI answer and build the Monday row": {
+   "main": [
+    [
+     {
+      "node": "Add call row on Monday",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Add call row on Monday": {
+   "main": [
+    [
+     {
+      "node": "Prepare follow-up task",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prepare follow-up task": {
+   "main": [
+    [
+     {
+      "node": "Add follow-up task under the row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}

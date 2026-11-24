@@ -5,9 +5,9 @@
 | Lead Gen Command Centre | **Live in production** since 28 Sep 2026 | 4,352 messages, 125 buyers replied, cost ledgers ([docs/01](docs/01-lead-gen.md)) |
 | Buyer Desk (desk engine, website and n8n) | **Live in production** | 219 real messages, 0 errors, $1.01; Monday board with 125 rows |
 | Ticket Desk | **Live in production** | Monday board with 90 tickets |
-| Support Desk | **Built and running; tested on test tickets** | 12 of 12 test tickets; eval set in [evals/](evals/) |
+| Support Desk | **Built and running; tested on test tickets** | 12 of 12 on the tuning set, and **12 of 12 on 12 unseen tickets** run live on 24 Nov 2026 ([results](docs/evidence/holdout-eval-2026-11-24.md)) |
 | n8n Inquiry Desk | **Live** (the one workflow switched on) | [n8n/inquiry-desk.workflow.json](n8n/inquiry-desk.workflow.json) |
-| Six other n8n workflows | **Built, switched off** | Described in [n8n/inquiry-desk.md](n8n/inquiry-desk.md) |
+| Six other n8n workflows | **Built, switched off** | Telecaller and Ad Desk exported: [n8n/telecaller.workflow.json](n8n/telecaller.workflow.json), [n8n/ad-desk.workflow.json](n8n/ad-desk.workflow.json); the rest described in [n8n/inquiry-desk.md](n8n/inquiry-desk.md) |
 | Image Studio | **Live in production** | 127 rings, 1,200 pictures; ledger code and tests |
 | Price Engine and SJF Gold Live | **Live in production** | 8,569 designs priced daily; rate code and tests |
 | Ad Desk | **In progress** | 32 spending-safety tests (in its own codebase, not included), live ad test results |

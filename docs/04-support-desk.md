@@ -32,5 +32,8 @@ Engine: [`src/desk-engine/engine.js`](../src/desk-engine/engine.js), module `sup
 | The same message twice | Second one skipped in 0.0 seconds |
 | No secret key | Refused (403) |
 
+## Unseen tickets
+On 24 Nov 2026, 12 new agency-style tickets the desk had never seen were run live: **12 of 12 right on category and urgency**, median 12 s, all answered by Grok ([results](evidence/holdout-eval-2026-11-24.md)).
+
 ## How I would build a ticketing system for a new team
 Take 50 real tickets as a sample, build the categories and teams from them, run the desk on those, review every result with the team, adjust, then go live with a person approving every reply.

@@ -1,0 +1,243 @@
+{
+ "ran": "2026-11-24T11:28:04.609Z",
+ "category": 12,
+ "urgency": 12,
+ "total": 12,
+ "rows": [
+  {
+   "text": "Hi, the 14 leads you sent last week all had wrong phone numbers. We paid for this. What happens now?",
+   "expect": {
+    "category": "lead_quality",
+    "urgency": "high"
+   },
+   "got": {
+    "category": "lead_quality",
+    "urgency": "high"
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 18000,
+   "note": "first run, result recorded from console"
+  },
+  {
+   "text": "Please take us off your texting list. We did not sign up for this.",
+   "expect": {
+    "category": "opt_out",
+    "urgency": "urgent"
+   },
+   "got": {
+    "category": "opt_out",
+    "urgency": "urgent",
+    "team": "compliance",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 8805,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1844
+  },
+  {
+   "text": "We're thinking of ending our contract at the end of the month. The appointments just aren't closing.",
+   "expect": {
+    "category": "cancellation_risk",
+    "urgency": "urgent"
+   },
+   "got": {
+    "category": "cancellation_risk",
+    "urgency": "urgent",
+    "team": "account_manager",
+    "churn_risk": 8
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 9074,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1860
+  },
+  {
+   "text": "Two homeowners booked for Tuesday never showed up and nobody confirmed them the day before.",
+   "expect": {
+    "category": "appointment_no_show",
+    "urgency": "high"
+   },
+   "got": {
+    "category": "appointment_no_show",
+    "urgency": "high",
+    "team": "account_manager",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 20078,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1848
+  },
+  {
+   "text": "Our card was charged twice for November. Can someone fix this?",
+   "expect": {
+    "category": "invoice_dispute",
+    "urgency": "high"
+   },
+   "got": {
+    "category": "invoice_dispute",
+    "urgency": "high",
+    "team": "billing",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 9232,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1833
+  },
+  {
+   "text": "The calendar booking widget on our site stopped loading this morning.",
+   "expect": {
+    "category": "tech_issue",
+    "urgency": "high"
+   },
+   "got": {
+    "category": "tech_issue",
+    "urgency": "high",
+    "team": "tech_support",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 12015,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1840
+  },
+  {
+   "text": "Can we switch our ads from roofing to gutters for the next two weeks?",
+   "expect": {
+    "category": "pause_or_change",
+    "urgency": "normal"
+   },
+   "got": {
+    "category": "pause_or_change",
+    "urgency": "normal",
+    "team": "account_manager",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 13400,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1864
+  },
+  {
+   "text": "New client here, where do I upload our logo and service area?",
+   "expect": {
+    "category": "onboarding",
+    "urgency": "normal"
+   },
+   "got": {
+    "category": "onboarding",
+    "urgency": "normal",
+    "team": "onboarding",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 18693,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1831
+  },
+  {
+   "text": "Just wanted to say the new campaign is booking great jobs, thank you!",
+   "expect": {
+    "category": "compliment",
+    "urgency": "low"
+   },
+   "got": {
+    "category": "compliment",
+    "urgency": "low",
+    "team": "account_manager",
+    "churn_risk": 1
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 11581,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1841
+  },
+  {
+   "text": "URGENT: claim your $500 gift card now, click this link",
+   "expect": {
+    "category": "spam",
+    "urgency": "low"
+   },
+   "got": {
+    "category": "spam",
+    "urgency": "low",
+    "team": "none",
+    "churn_risk": 0
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 17057,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1839
+  },
+  {
+   "text": "When will our monthly report arrive? It's usually here by the 5th.",
+   "expect": {
+    "category": "other",
+    "urgency": "normal"
+   },
+   "got": {
+    "category": "other",
+    "urgency": "normal",
+    "team": "account_manager",
+    "churn_risk": 1
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 15635,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1836
+  },
+  {
+   "text": "If I get one more robocall from your team I'm reporting you. Stop calling me.",
+   "expect": {
+    "category": "opt_out",
+    "urgency": "urgent"
+   },
+   "got": {
+    "category": "opt_out",
+    "urgency": "urgent",
+    "team": "compliance",
+    "churn_risk": 10
+   },
+   "ai": "Grok 4.7",
+   "backup": false,
+   "ms": 8164,
+   "status": "Ready for approval",
+   "fixes": [],
+   "flags": [],
+   "tokens": 1844
+  }
+ ]
+}

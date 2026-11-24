@@ -26,8 +26,9 @@ The numbers below come from the live systems, their cost ledgers and, where mark
 | 7 | [Ad Desk](docs/07-ad-desk.md) | Writes and checks ads, drafts a first reply to every new ad lead in seconds | Test: $176 over 30 days gave 195 WhatsApp chats and 277 shop visits | In progress |
 | 8 | [AI Telecaller](docs/08-ai-telecaller.md) | AI voice agents that call and answer buyers, then log a summary and follow-up | Test: 48 calls, about 0.6 s to answer, about $0.09 a minute | In progress |
 
-Start with **[STATUS.md](STATUS.md)** (what is live and what is not) and the **[worked example](docs/13-worked-example.md)**
-(from a loose problem to a running system).
+Start with **[STATUS.md](STATUS.md)** (what is live and what is not), the **[worked example](docs/13-worked-example.md)**
+(from a loose problem to a running system), the **[live test on 12 unseen tickets](docs/evidence/holdout-eval-2026-11-24.md)**
+(12 of 12 correct) and **[how I build with Claude Code](docs/14-how-i-use-claude-code.md)**.
 
 Also: **Vroom's first projects and how I would start** ([docs/11](docs/11-vroom-first-projects.md)), **how I work** ([docs/12](docs/12-how-i-work.md)), the team's **task board and daily reporting** ([docs/09](docs/09-team-reporting.md)), the **SJF AI Desk** command centre
 ([docs/10](docs/10-ai-desk.md)), four customer websites (house site, Gold Live prices, lab diamonds, silver), and my
@@ -61,16 +62,19 @@ src/
   image-studio/kie_batch.py    The spending safety of the image pipeline: a locked, shared ledger so nothing
                                is ever paid for twice, a credit cap that stops a run before anything is sent,
                                and a 3-picture first stage before the other 21 are paid for
-tests/                         37 JavaScript tests (npm test) + 3 Python tests for the image ledger
+tests/                         40 JavaScript tests (npm test) + 3 Python tests for the image ledger
 evals/                         12 support test tickets with expected answers, and a script that scores the live desk
-n8n/                           The live n8n Inquiry Desk: explained box by box, and the exported workflow file
+n8n/                           Three real n8n workflows, exported (instructions removed): the live Inquiry Desk, the
+                               Telecaller (call finished to Monday row and follow-up task) and the Ad Desk (new Meta lead
+                               to draft reply, Monday row, wait for approval)
+claude/                        A cleaned copy of the rules file I give Claude Code in every session
 STATUS.md                      Every part, plainly: live, tested with stand-ins only, or in progress
 docs/                          One page per system: flow, decisions, safety, costs, what I would change
 ```
 
 ## How to run
 
-* Tests (Node 20+): `npm test` runs 37 tests; `python -m unittest discover -s tests -p "test_*.py"` runs the 3 image-ledger tests. No keys or network needed: the AI, Monday, GoHighLevel and kie.ai calls are replaced by stand-ins.
+* Tests (Node 20+): `npm test` runs 40 tests; `python -m unittest discover -s tests -p "test_*.py"` runs the 3 image-ledger tests. No keys or network needed: the AI, Monday, GoHighLevel and kie.ai calls are replaced by stand-ins.
 * Live accuracy check (needs keys, about half a cent a ticket): `npm run eval`.
 * Webhook server: `WEBHOOK_SECRET=... node src/server.js`.
 * The desk engine needs `XAI_API_KEY`, `ANTHROPIC_API_KEY`, the private instructions and, optionally, `MONDAY_API_TOKEN` and `MONDAY_BOARD_ID` (see `.env.example`).
@@ -93,7 +97,7 @@ docs/                          One page per system: flow, decisions, safety, cos
 
 | The role asks for | Where it is |
 |---|---|
-| **Claude Code**, real projects | Every system here was built with it. I design the system and the rules, Claude Code writes the code, I test everything on real data before it goes live. |
+| **Claude Code**, real projects | Every system here was built with it. I design the system and the rules, Claude Code writes the code, I test everything on real data, and a separate AI reviewer audits the result: [docs/14](docs/14-how-i-use-claude-code.md), [rules file](claude/CLAUDE.example.md) |
 | **Grok (xAI) API**, real projects | `askGrok()` in the desk engine: Grok 4.7, temperature 0, strict JSON schema, 40 s timer, automatic Claude backup. 219 real buyer messages, 0 errors, $1.01. |
 | **2+ years** building automations | 4 years building lead-generation automation at Malek Media Marketing with no-code tools and my own Google Apps Script (PhantomBuster, Dux-Soup, ChatGPT scoring, per-client tracking sheets); since July 2026, five months building software with Claude Code: everything in this repository. [docs/00](docs/00-background.md) |
 | **Python / JavaScript, REST APIs, webhooks, JSON** | JavaScript (desk engine, connectors, monitoring, price rates), Python (image pipeline); REST calls to xAI, Anthropic, Monday (GraphQL), GoHighLevel, kie.ai, rate services; webhooks in n8n, GoHighLevel and Fathom; strict JSON schemas throughout |
@@ -102,7 +106,7 @@ docs/                          One page per system: flow, decisions, safety, cos
 | **Loosely defined problems into documented solutions** | [docs/12-how-i-work.md](docs/12-how-i-work.md): measure the cost, map the flow, smallest version on real data, then document and measure |
 | **Clear written and spoken English** | This repository; every system has a plain-English guide; four years as the only contact for US and UK clients |
 | **Nice to have: agency experience** | 4 years at Malek Media Marketing, a US/UK appointment-setting agency: 13 client accounts at once, about $32,500 MRR at the peak |
-| **Nice to have: Make, Zapier or n8n** | Seven n8n workflows, one live with a secret key, duplicate check, backup AI and retries: [n8n/inquiry-desk.md](n8n/inquiry-desk.md) |
+| **Nice to have: Make, Zapier or n8n** | Seven n8n workflows; three exported here as real, importable files: the live Inquiry Desk (secret key, duplicate check, Grok with Claude backup, 11 Monday columns, retries), the Telecaller and the Ad Desk: [n8n/](n8n/) |
 | **Nice to have: call recording or speech-to-text** | Fathom connector for call intelligence (tested with stand-ins); AI Telecaller on ElevenLabs, which listens and speaks in real time (48 test calls); team reports spoken into the browser's speech-to-text in three languages |
 | **Nice to have: lead enrichment and scraping (Apollo, Clay), data privacy** | Lead Gen does the same jobs with Sales Navigator, Apify, Jina Reader, TinyFish and Tavily; privacy, opt-outs and consent in the [compliance section](ARCHITECTURE.md#compliance-privacy-and-ai-safety) |
 | **Nice to have: helpdesk or ticketing systems** | Support Desk and Ticket Desk |

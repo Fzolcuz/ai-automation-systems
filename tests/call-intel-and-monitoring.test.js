@@ -46,3 +46,27 @@ test("monitoring: response times, backup rate, review rate, cost and hours saved
   assert.equal(s.byModule.support.runs, 2);
   assert.deepEqual(alerts(s), ["Backup AI answered 25% of runs: check the main AI", "Slow: 95% of answers within 40 s"]);
 });
+
+test("alerts are delivered to a person, one message each", async () => {
+  const { deliverAlerts } = await import("../src/monitoring/metrics.js");
+  const sent = [];
+  const n = await deliverAlerts(["Slow: 95% of answers within 40 s"], { send: async (t) => sent.push(t) });
+  assert.equal(n, 1);
+  assert.deepEqual(sent, ["AI desk alert: Slow: 95% of answers within 40 s"]);
+});
+
+test("phone numbers and emails are masked before text reaches the AI; each run records its instruction version", async () => {
+  process.env.INSTRUCTIONS_SUPPORT_VERSION = "support-v7";
+  let seenByAI = "";
+  const grok = async (m, userText) => { seenByAI = userText; return { out: { urgency: "normal", category: "delivery", churn_risk: 1, suggested_reply: "Checking.", summary: "s", next_step: "n", confidence: 0.9 } }; };
+  const r = await run("support", { text: "Call me on +1 555 201 7788 or mail jo@example.com about my parcel", from: "jo@example.com" }, { grok });
+  assert.ok(!seenByAI.includes("555") && !seenByAI.includes("jo@example.com"));
+  assert.match(seenByAI, /\[phone\].*\[email\]/s);
+  assert.equal(r.instructionsVersion, "support-v7");
+});
+
+test("masking keeps dates and order numbers", async () => {
+  const { redactForAI } = await import("../src/desk-engine/engine.js");
+  assert.equal(redactForAI("Order 4471 shipped on 2026-11-20"), "Order 4471 shipped on 2026-11-20");
+  assert.equal(redactForAI("call +1 555 010 0199"), "call [phone]");
+});

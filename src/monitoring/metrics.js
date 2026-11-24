@@ -40,3 +40,11 @@ export function alerts(summary, { maxBackupRate = 0.2, maxP95Seconds = 30, maxRe
   if (summary.reviewRate > maxReviewRate) out.push(`${(summary.reviewRate * 100).toFixed(0)}% of answers needed a person: review the instructions`);
   return out;
 }
+
+// Alerts reach a person, not just a log: `send` posts the text wherever the team looks
+// (a Monday update, an email, a Slack or WhatsApp webhook). Returns how many were sent.
+export async function deliverAlerts(list, { send, title = "AI desk alert" }) {
+  let n = 0;
+  for (const a of list) { await send(`${title}: ${a}`); n++; }
+  return n;
+}

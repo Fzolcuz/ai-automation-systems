@@ -13,7 +13,7 @@
 // The rest is the production logic, tidied for reading and split into testable functions.
 // (In production the Monday retries live in the n8n workflow; here they are in code so they can be tested.)
 
-import { loadPrivateInstructions } from "./private-instructions.js";
+import { loadPrivateInstructions, instructionsVersion } from "./private-instructions.js";
 
 const S = (props) => ({ type: "object", additionalProperties: false, required: Object.keys(props), properties: props });
 const str = { type: "string" }, int = { type: "integer" }, num = { type: "number" }, bool = { type: "boolean" };
@@ -239,10 +239,16 @@ export function mondayColumns(t, hours, map, now = new Date()) {
   return Object.keys(cols).length ? cols : null;
 }
 
+// Contact details are not needed to understand a message, so they are masked before any text is sent to an AI
+// provider. The original stays in our own systems (the rules and the Monday item use it).
+export const redactForAI = (s) => String(s || "")
+  .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]")
+  .replace(/\+?\d[\d ()-]{7,}\d/g, (m) => (m.replace(/\D/g, "").length >= 9 ? "[phone]" : m));   // 9+ digits: a phone, not a date or order number
+
 export async function run(module, { text, from, country, channel = "web" }, deps = {}) {
   if (!MODULES[module]) throw new Error("Unknown module");
   const started = Date.now();
-  const userText = `From: ${from || "Unknown"}${country ? ", " + country : ""}\nChannel: ${channel}\n\n${text}`;
+  const userText = `From: ${redactForAI(from) || "Unknown"}${country ? ", " + country : ""}\nChannel: ${channel}\n\n${redactForAI(text)}`;
   const d = await decide(module, userText, deps);
   const t = d.out;
   const { fixes, flags } = applyRules(text, t);
@@ -271,6 +277,7 @@ export async function run(module, { text, from, country, channel = "web" }, deps
     status: flags.length ? "Needs review" : "Ready for approval",   // a person always approves before sending
     replyWithinHours: hours, mondayItem, steps,
     ms: Date.now() - started,                                    // for monitoring/metrics.js
+    instructionsVersion: instructionsVersion(module),
     tokens: (d.inTok || 0) + (d.outTok || 0),
     costUsd: costUsd(d.ai, d.inTok, d.outTok),
   };

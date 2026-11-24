@@ -18,3 +18,8 @@ export async function loadPrivateInstructions(module) {
   if (!text) throw new Error(`Private instructions for "${module}" are not configured`);
   return text;
 }
+
+// Every change to the instructions gets a version label (for example "support-v7"), and each run records the
+// version that produced it, so a drop in accuracy can be traced to the change that caused it.
+export const instructionsVersion = (module) =>
+  process.env[`INSTRUCTIONS_${module.toUpperCase()}_VERSION`] || process.env.INSTRUCTIONS_VERSION || "unversioned";
